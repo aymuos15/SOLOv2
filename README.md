@@ -8,3 +8,6 @@ FOR Training
 1. in mask_feat_head.py, Make the following change:
             # feature_add_all_level += self.convs_all_levels[i](input_p)
             feature_add_all_level = self.convs_all_levels[i](input_p) + feature_add_all_level
+
+
+Original REPO: https://github.com/OpenFirework/pytorch_solov2
