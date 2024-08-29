@@ -1,21 +1,24 @@
+import torch
+import torch.optim as optim
+from torch.nn.utils import clip_grad
+
 from data.config import cfg, process_funcs_dict
 from data.coco import CocoDataset
 from data.loader import build_dataloader
-from modules.solov2 import SOLOV2
-import torch.optim as optim
-import time
-# import argparse
-import torch
-from torch.nn.utils import clip_grad
 
-#梯度均衡
+from modules.solov2 import SOLOV2
+
+from datetime import timedelta
+
+import warnings
+warnings.filterwarnings("ignore")
+
 def clip_grads(params):
     params = list(
             filter(lambda p: p.requires_grad and p.grad is not None, params))
     if len(params) > 0:
         return clip_grad.clip_grad_norm_(params, max_norm=35, norm_type=2)
 
-#设置新学习率
 def set_lr(optimizer, new_lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = new_lr
@@ -25,6 +28,27 @@ def gradinator(x):
     x.requires_grad = False
     return x
 
+#Better Logging for all:)
+def format_time(seconds):
+    return str(timedelta(seconds=int(seconds)))
+
+def log_progress(iter_nums, base_loop, total_epochs, j, loss_sum, loss_ins, loss_cate, cur_lr, log_interval=50):
+    if j % log_interval == 0 and j != 0:
+        
+        epoch_progress = f"Epoch: [{iter_nums + base_loop}/{total_epochs}]"
+        
+        losses = {
+            "Total": loss_sum / log_interval,
+            "Instance": loss_ins / log_interval,
+            "Category": loss_cate / log_interval
+        }
+        
+        loss_str = ", ".join([f"{k}: {v:.4f}" for k, v in losses.items()])
+        
+        print(f"{epoch_progress})")
+        print(f"Losses - {loss_str}")
+        print(f"Learning rate: {cur_lr:.5f}")
+        print("-" * 50)
 
 def build_process_pipeline(pipeline_confg):
     assert isinstance(pipeline_confg, list)
@@ -50,49 +74,27 @@ def get_warmup_lr(cur_iters, warmup_iters, bash_lr, warmup_ratio, warmup='linear
         warmup_lr = bash_lr * k
     return warmup_lr
 
+
+def train(epoch_iters = 1, total_epochs = 10):
     
-
-
-def train(epoch_iters = 1, total_epochs = 36):
     #train process pipelines func
     transforms_piplines = build_process_pipeline(cfg.train_pipeline)
-    print(transforms_piplines)
+
     # #build datashet
     casiadata = CocoDataset(ann_file=cfg.dataset.train_info,
                             pipeline = transforms_piplines,
                             img_prefix = cfg.dataset.trainimg_prefix,
                             data_root=cfg.dataset.train_prefix)
     
-   
-    # #load datashet batchsize = cfg.imgs_per_gpu*cfg.num_gpus
     torchdata_loader = build_dataloader(casiadata, cfg.imgs_per_gpu, cfg.workers_per_gpu, num_gpus=cfg.num_gpus, shuffle=True)
-    batchsize = cfg.imgs_per_gpu*cfg.num_gpus
-
-    epoch_size = len(casiadata) // batchsize  
-    step_index = 0
-
     
-    if cfg.resume_from is None:
-        model = SOLOV2(cfg, pretrained=None, mode='train')
-        print('cfg.resume_from is None')
-    else:
-        model = SOLOV2(cfg, pretrained=cfg.resume_from, mode='train')   #从训练好的权重文件载入
-    
+    #todo: Add Checkpointing for training
+    model = SOLOV2(cfg, pretrained=None, mode='train')
     model = model.cuda()
     model = model.train()
 
     optimizer_config = cfg.optimizer
     optimizer = optim.SGD(model.parameters(), lr=optimizer_config['lr'], momentum=optimizer_config['momentum'], weight_decay=optimizer_config['weight_decay'])
-
-    print(epoch_iters, cfg.lr_config['step'][0], cfg.lr_config['step'][1],total_epochs )
-    if epoch_iters < cfg.lr_config['step'][0]:
-        set_lr(optimizer, 0.01)
-    elif epoch_iters >= cfg.lr_config['step'][0] and epoch_iters < cfg.lr_config['step'][1]:
-        set_lr(optimizer, 0.001)
-    elif epoch_iters >=  cfg.lr_config['step'][1] and epoch_iters <= total_epochs:
-        set_lr(optimizer, 0.0001)
-    else:
-        raise NotImplementedError("train epoch is done!")
 
     #epoch has trained times, start loop times
     base_loop = epoch_iters
@@ -101,18 +103,21 @@ def train(epoch_iters = 1, total_epochs = 36):
     left_loops = total_epochs - base_loop + 1
 
     #all left iter nums
-    total_nums = left_loops * epoch_size
+    total_nums = left_loops * total_epochs
     left_nums = total_nums
-    base_nums = (base_loop - 1)*epoch_size
+    base_nums = (base_loop - 1)* total_epochs
+
     loss_sum = 0.0 
     loss_ins = 0.0 
     loss_cate = 0.0
-    start_time = 0
-    end_time = 0
+
     base_lr = optimizer_config['lr']
     cur_lr = base_lr
-    print('##### begin train ######')
     cur_nums = 0   
+
+    print()
+    print("Start training...")
+    print()
  
     try:
         for iter_nums in range(left_loops):
@@ -136,7 +141,7 @@ def train(epoch_iters = 1, total_epochs = 36):
            
 
             for j, data in enumerate(torchdata_loader):
-                
+
                 if cfg.lr_config['warmup'] is not None and base_nums < cfg.lr_config['warmup_iters']:
                     warm_lr = get_warmup_lr(base_nums, cfg.lr_config['warmup_iters'],
                                             optimizer_config['lr'], cfg.lr_config['warmup_ratio'],
@@ -147,9 +152,8 @@ def train(epoch_iters = 1, total_epochs = 36):
                     set_lr(optimizer, base_lr)
                     cur_lr = base_lr
                 
-                last_time = time.time()
                 imgs = gradinator(data['img'].data[0].cuda())
-                img_meta = data['img_metas'].data[0]   #图片的一些原始信息
+                img_meta = data['img_metas'].data[0]
                 gt_bboxes = []
                 for bbox in data['gt_bboxes'].data[0]:
                     bbox = gradinator(bbox.cuda())
@@ -179,32 +183,23 @@ def train(epoch_iters = 1, total_epochs = 36):
                 losses.backward()
 
                 if torch.isfinite(losses).item():
-                    grad_norm = clip_grads(model.parameters())  #梯度平衡
                     optimizer.step()
                 else:
                     NotImplementedError("loss type error!can't backward!")
 
                 left_nums = left_nums - 1
-                use_time = time.time() - last_time
                 base_nums = base_nums + 1
                 cur_nums = cur_nums + 1
+
                 #ervery iter 50 times, print some logger
                 if j%50 == 0 and j != 0:
-                    left_time = use_time*(total_nums - cur_nums)
-                    left_minut = left_time/60.0
-                    left_hours =  left_minut/60.0
-                    left_day = left_hours//24
-                    left_hour = left_hours%24
 
-                    out_srt = 'epoch:[' + str(iter_nums + base_loop) + ']/[' + str(total_epochs) + '],';
-                    out_srt = out_srt + '[' + str(j) + ']/' + str(epoch_size) + '], left_time:' + str(left_day) + 'days,' + format(left_hour,'.2f') + 'h,'
-                    print(out_srt, "loss: ", format(loss_sum/50.0,'.4f'), ' loss_ins:', format(loss_ins/50.0,'.4f'), "loss_cate:", format(loss_cate/50.0,'.4f'), "lr:",  format(cur_lr,'.5f'))
+                    log_progress(iter_nums, base_loop, total_epochs, j, loss_sum, loss_ins, loss_cate, cur_lr)
+
                     loss_sum = 0.0 
                     loss_ins = 0.0 
                     loss_cate = 0.0
                     
-
-
             left_loops = left_loops -1
             save_name = "./weights/solov2_" + cfg.backbone.name + "_epoch_" + str(iter_nums + base_loop) + ".pth"
             model.save_weights(save_name)        
@@ -214,4 +209,4 @@ def train(epoch_iters = 1, total_epochs = 36):
         model.save_weights(save_name)      
 
 if __name__ == '__main__':
-    train(epoch_iters=cfg.epoch_iters_start, total_epochs = cfg.total_epoch)   #设置本次训练的起始epoch
+    train(epoch_iters=cfg.epoch_iters_start, total_epochs = cfg.total_epoch) 

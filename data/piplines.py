@@ -8,7 +8,7 @@ from .data_container import DataContainer as DC
 from .compose import Compose
 import cv2
 
-from .imgutils import rescale_size, imresize, imrescale, imflip, impad, impad_to_multiple
+from .imgutils import imresize, imrescale, imflip, impad, impad_to_multiple
 
 class LoadImageFromFile(object):
 

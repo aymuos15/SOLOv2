@@ -3,19 +3,6 @@ import numbers
 import numpy as np
 import cv2
 
-
-
-def _scale_size(size, scale):
-    """Rescale a size by a ratio.
-    Args:
-        size (tuple[int]): (w, h).
-        scale (float): Scaling factor.
-    Returns:
-        tuple[int]: scaled size.
-    """
-    w, h = size
-    return int(w * float(scale) + 0.5), int(h * float(scale) + 0.5)
-
 def rescale_size(old_size, scale, return_scale=False):
     """Calculate the new size to be rescaled to.
     Args:
@@ -43,7 +30,7 @@ def rescale_size(old_size, scale, return_scale=False):
         raise TypeError(
             f'Scale must be a number or tuple of int, but got {type(scale)}')
 
-    new_size = _scale_size((w, h), scale_factor)
+    new_size = (int(w * scale_factor + 0.5), int(h * scale_factor + 0.5))
 
     if return_scale:
         return new_size, scale_factor
@@ -102,8 +89,6 @@ def imrescale(img,
         return rescaled_img, scale_factor
     else:
         return rescaled_img
-
-
 
 def imflip(img, direction='horizontal'):
     """Flip an image horizontally or vertically.

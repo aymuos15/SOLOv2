@@ -1,8 +1,6 @@
 import torch
-# import numpy as np
 import torch.nn as nn
-# import torch.nn.functional as F
-# from .nninit import xavier_init, kaiming_init, normal_init,bias_init_with_prob
+
 from .nninit import normal_init
 
 class MaskFeatHead(nn.Module):
@@ -123,7 +121,6 @@ class MaskFeatHead(nn.Module):
                 coord_feat = torch.cat([x, y], 1)
                 input_p = torch.cat([input_p, coord_feat], 1)
                 
-            # feature_add_all_level += self.convs_all_levels[i](input_p)
             feature_add_all_level = feature_add_all_level + self.convs_all_levels[i](input_p)
 
         feature_pred = self.conv_pred(feature_add_all_level)

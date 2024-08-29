@@ -1,9 +1,4 @@
-import os
-import numpy as np
-from math import sqrt
-import torch
 from .piplines import LoadImageFromFile, LoadAnnotations, Normalize, DefaultFormatBundle, Collect, TestCollect, Resize, Pad, RandomFlip, MultiScaleFlipAug, ImageToTensor
-
 
 process_funcs_dict = {'LoadImageFromFile':  LoadImageFromFile,
                       'LoadAnnotations': LoadAnnotations,
@@ -67,6 +62,17 @@ COCO_LABEL_MAP = { 1:  1,  2:  2,  3:  3,  4:  4,  5:  5,  6:  6,  7:  7,  8:  8
                   74: 65, 75: 66, 76: 67, 77: 68, 78: 69, 79: 70, 80: 71, 81: 72,
                   82: 73, 84: 74, 85: 75, 86: 76, 87: 77, 88: 78, 89: 79, 90: 80}
 
+COCO_LABEL = [1,  2,  3,  4,  5,  6,  7,  8,
+              9, 10, 11, 13, 14, 15, 16, 17,
+              18, 19, 20, 21, 22, 23, 24, 25,
+              27, 28, 31, 32, 33, 34, 35, 36,
+              37, 38, 39, 40, 41, 42, 43, 44,
+              46, 47, 48, 49, 50, 51, 52, 53,
+              54, 55, 56, 57, 58, 59, 60, 61,
+              62, 63, 64, 65, 67, 70, 72, 73,
+              74, 75, 76, 77, 78, 79, 80, 81,
+              82, 84, 85, 86, 87, 88, 89, 90]
+
 class Config(object):
     """
     After implement this class, you can call 'cfg.x' instead of 'cfg['x']' to get a certain parameter.
@@ -103,74 +109,55 @@ class Config(object):
         for k, v in vars(self).items():
             print(k, ' = ', v)
 
+# ----------------------- DATASETS ----------------------- #
 
-dataset_base = Config({
-    'name': 'Base Dataset',
+#? Just a base dataset config. You should copy this and fill in the values for your dataset.
+# dataset_base = Config({
+#     'name': 'Base Dataset',
 
-    # Training images and annotations
-    'train_images': './data/coco/images/',
-    'train_info':   'path_to_annotation_file',
+#     # Training images and annotations
+#     'train_images': './data/coco/images/',
+#     'train_info':   'path_to_annotation_file',
 
-    # Validation images and annotations.
-    'valid_images': './data/coco/images/',
-    'valid_info':   'path_to_annotation_file',
+#     # Validation images and annotations.
+#     'valid_images': './data/coco/images/',
+#     'valid_info':   'path_to_annotation_file',
 
-    # Whether or not to load GT. If this is False, eval.py quantitative evaluation won't work.
-    'has_gt': True,
+#     # Whether or not to load GT. If this is False, eval.py quantitative evaluation won't work.
+#     'has_gt': True,
 
-    # A list of names for each of you classes.
-    'class_names': COCO_CLASSES,
+#     # A list of names for each of you classes.
+#     'class_names': COCO_CLASSES,
 
-    # COCO class ids aren't sequential, so this is a bandage fix. If your ids aren't sequential,
-    # provide a map from category_id -> index in class_names + 1 (the +1 is there because it's 1-indexed).
-    # If not specified, this just assumes category ids start at 1 and increase sequentially.
-    'label_map': None
-})
+#     # COCO class ids aren't sequential, so this is a bandage fix. If your ids aren't sequential,
+#     # provide a map from category_id -> index in class_names + 1 (the +1 is there because it's 1-indexed).
+#     # If not specified, this just assumes category ids start at 1 and increase sequentially.
+#     'label_map': None
+# })
 
-coco2017_dataset = dataset_base.copy({
-   'name': 'COCO 2017',
-
-    'train_prefix': './data/coco/',
-    'train_info': 'annotations/instances_train2017.json',
-    'trainimg_prefix': 'train2017/',
-    'train_images': './data/coco/',
-
-    'valid_prefix': './data/coco/',
-    'valid_info': 'annotations/instances_val2017.json',
-    'validimg_prefix': 'val2017/',
-    'valid_images': './data/coco/',
-
-    'label_map': COCO_LABEL_MAP
-
-
-})
-
-casia_SPT_val = dataset_base.copy({
+casia_SPT_val = Config({
     'name': 'casia-SPT 2020',
     
-    'train_prefix': './data/casia-SPT_val/val/',
+    'train_prefix': './datasets/casia-SPT_val/val/',
     'train_info': 'val_annotation.json',
     'trainimg_prefix': '',
-    'train_images': './data/casia-SPT_val/val/',
+    'train_images': './datasets/casia-SPT_val/val/',
 
-    
-    'valid_prefix': './data/casia-SPT_val/val/',
+    'valid_prefix': './datasets/casia-SPT_val/val/',
     'valid_info': 'val_annotation.json',
     'validimg_prefix': '',
-    'valid_images': './data/casia-SPT_val/val',
+    'valid_images': './datasets/casia-SPT_val/val',
 
-    'label_map': COCO_LABEL_MAP
+    'class_names': COCO_CLASSES,
+    'label_map': COCO_LABEL_MAP,
+    'label': COCO_LABEL,
+
+    'num_classes': 81,
 })
 
 # ----------------------- BACKBONES ----------------------- #
 
-backbone_base = Config({
-    'name': 'Base Backbone',
-    'path': 'path/to/pretrained/weights',
-    'type': None,
-})
-
-resnet18_backbone = backbone_base.copy({
+resnet18_backbone = Config({
     'name': 'resnet18',
     'path': './pretrained/resnet18_nofc.pth',
     'type': 'ResNetBackbone',
@@ -178,16 +165,6 @@ resnet18_backbone = backbone_base.copy({
     'frozen_stages': 1,
     'out_indices': (0, 1, 2, 3)
 })
-
-resnet34_backbone = backbone_base.copy({
-    'name': 'resnet34',
-    'path': './pretrained/resnet34_nofc.pth',
-    'type': 'ResNetBackbone',
-    'num_stages': 4,
-    'frozen_stages': 1,
-    'out_indices': (0, 1, 2, 3)
-})
-
 
 #fpn config
 fpn_base = Config({
@@ -197,63 +174,46 @@ fpn_base = Config({
     'num_outs': 5,
 })
 
-
-# ----------------------- CONFIG DEFAULTS ----------------------- #
-
-coco_base_config = Config({
-    'dataset': coco2017_dataset,
-    'num_classes': 81, # This should include the background class
-
-})
-
-
-
-
 # ----------------------- SOLO v2.0 CONFIGS ----------------------- #
 
-solov2_base_config = coco_base_config.copy({
+solov2_base_config = casia_SPT_val.copy({
     'name': 'solov2_base',
  
     'backbone': resnet18_backbone,
 
-    # Dataset stuff
     'dataset': casia_SPT_val,
-    'num_classes': len(coco2017_dataset.class_names) + 1,
 
     'imgs_per_gpu': 2,
     'workers_per_gpu': 1,
     'num_gpus': 1,
 
     'train_pipeline':  [
-        dict(type='LoadImageFromFile'),                                #read img process 
-        dict(type='LoadAnnotations', with_bbox=True, with_mask=True),     #load annotations 
-        dict(type='Resize',                                             #多尺度训练，随即从后面的size选择一个尺寸
+        dict(type='LoadImageFromFile'),                                 
+        dict(type='LoadAnnotations', with_bbox=True, with_mask=True),     
+        dict(type='Resize',                                             
             img_scale=[(768, 512), (768, 480), (768, 448),
                     (768, 416), (768, 384), (768, 352)],
             multiscale_mode='value',
             keep_ratio=True),
-        dict(type='RandomFlip', flip_ratio=0.5),                    #随机反转,0.5的概率
-        dict(type='Normalize', mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True),    #normallize                 
-        dict(type='Pad', size_divisor=32),                                #pad另一边的size为32的倍数，solov2对网络输入的尺寸有要求，图像的size需要为32的倍数
-        dict(type='DefaultFormatBundle'),                                #将数据转换为tensor，为后续网络计算
+        dict(type='RandomFlip', flip_ratio=0.5),                    
+        dict(type='Normalize', mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True),                  
+        dict(type='Pad', size_divisor=32),
+        dict(type='DefaultFormatBundle'),
         dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks'], meta_keys=('filename', 'ori_shape', 'img_shape', 'pad_shape',
                             'scale_factor', 'flip', 'img_norm_cfg')),   
     ],
 
-    'test_cfg': None,
-
     # learning policy
     'lr_config': dict(policy='step', warmup='linear', warmup_iters=500, warmup_ratio=0.01, step=[27, 33]),
-    'total_epoch': 36,
 
     # optimizer
     'optimizer': dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001),  
+    'optimizer_config': dict(grad_clip=dict(max_norm=35, norm_type=2)),
 
-    'optimizer_config': dict(grad_clip=dict(max_norm=35, norm_type=2)),   #梯度平衡策略
-
-    'resume_from': None,    #从保存的权重文件中读取，如果为None则权重自己初始化
-    
-    'epoch_iters_start': 1,    #本次训练的开始迭代起始轮数
+    # runtime settings
+    'total_epoch': 10,
+    'resume_from': None,    
+    'epoch_iters_start': 1,
 
     'test_pipeline': [
         dict(type='LoadImageFromFile'),
@@ -283,7 +243,6 @@ solov2_base_config = coco_base_config.copy({
 })
 
 cfg = solov2_base_config.copy()
-
 
 def set_cfg(config_name:str):
     """ Sets the active config. Works even if cfg is already imported! """

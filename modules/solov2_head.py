@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from data.imgutils import imrescale
 
-# from .nninit import xavier_init, kaiming_init, normal_init,bias_init_with_prob
 from .nninit import normal_init, bias_init_with_prob
 from .misc import multi_apply, matrix_nms
-# from .focal_loss import FocalLoss
+
 from scipy import ndimage
 
 INF = 1e8
@@ -100,11 +100,6 @@ class SOLOv2Head(nn.Module):
         self.kernel_out_channels = self.ins_out_channels * 1 * 1
         self.base_edge_list = base_edge_list
         self.scale_ranges = scale_ranges
-        
-        # self.loss_cate = FocalLoss(use_sigmoid=True,gamma=2.0,
-        #     alpha=0.25,
-        #     loss_weight=1.0)   #build_loss Focal_loss
-
         self.ins_loss_weight = 3.0  #loss_ins['loss_weight']  #3.0
         self.norm_cfg = norm_cfg
         self._init_layers()
@@ -306,7 +301,6 @@ class SOLOv2Head(nn.Module):
             for cate_pred in cate_preds
         ]
         flatten_cate_preds = torch.cat(cate_preds)
-        # loss_cate = self.loss_cate(flatten_cate_preds, flatten_cate_labels, avg_factor=num_ins + 1)
         loss_cate = py_sigmoid_focal_loss(flatten_cate_preds, flatten_cate_labels, avg_factor=num_ins + 1)
         return dict(loss_ins=loss_ins, loss_cate=loss_cate)
 
@@ -409,14 +403,13 @@ class SOLOv2Head(nn.Module):
                                 for i in range(num_levels)
             ]
             img_shape = img_metas[img_id]['img_shape']
-            scale_factor = img_metas[img_id]['scale_factor']
             ori_shape = img_metas[img_id]['ori_shape']
 
             cate_pred_list = torch.cat(cate_pred_list, dim=0)
             kernel_pred_list = torch.cat(kernel_pred_list, dim=0)
 
             result = self.get_seg_single(cate_pred_list, seg_pred_list, kernel_pred_list,
-                                         featmap_size, img_shape, ori_shape, scale_factor, cfg, rescale)
+                                         featmap_size, img_shape, ori_shape, cfg, rescale)
             result_list.append(result)
         return result_list
 
@@ -427,7 +420,6 @@ class SOLOv2Head(nn.Module):
                        featmap_size,
                        img_shape,
                        ori_shape,
-                       scale_factor,
                        cfg,
                        rescale=False, debug=False):
 
