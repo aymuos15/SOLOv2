@@ -1,6 +1,5 @@
 import collections
 
-
 class Compose(object):
 
     def __init__(self, transforms):

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from .fpn import FPN
-from .backbone import resnet18, resnet34
+from .backbone import resnet18
 from .solov2_head import SOLOv2Head
 from .mask_feat_head import MaskFeatHead
 
@@ -15,22 +15,20 @@ class SOLOV2(nn.Module):
         super(SOLOV2, self).__init__()
         if cfg.backbone.name == 'resnet18':
             self.backbone = resnet18(pretrained=True, loadpath = cfg.backbone.path)
-        elif cfg.backbone.name == 'resnet34':
-            self.backbone = resnet34(pretrained=True, loadpath = cfg.backbone.path)
         else:
             raise NotImplementedError
         
-        #this set only support resnet18 and resnet34 backbone, 可以根据solo中resent50的配置进行更改，使其支持resnset50的训练，下同
+        #this set only support resnet18
         self.fpn = FPN(in_channels=[64, 128, 256, 512],out_channels=256,start_level=0,num_outs=5,upsample_cfg=dict(mode='nearest'))
 
-        #this set only support resnet18 and resnet34 backbone
+        #this set only support resnet18
         self.mask_feat_head = MaskFeatHead(in_channels=256,
                             out_channels=128,
                             start_level=0,
                             end_level=3,
 
                             num_classes=128)
-        #this set only support resnet18 and resnet34 backbone
+        #this set only support resnet18
         self.bbox_head = SOLOv2Head(num_classes=81,
                             in_channels=256,
                             seg_feat_channels=256,

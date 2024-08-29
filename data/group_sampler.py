@@ -1,10 +1,7 @@
 from __future__ import division
-import math
 
 import numpy as np
-import torch
 from torch.utils.data import Sampler
-
 
 class GroupSampler(Sampler):
 

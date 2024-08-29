@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from data.imgutils import imrescale
 
 from .nninit import normal_init, bias_init_with_prob
-from .misc import multi_apply, matrix_nms
+from .nms import multi_apply, matrix_nms
 
 from scipy import ndimage
 

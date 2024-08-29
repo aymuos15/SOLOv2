@@ -209,4 +209,5 @@ def train(epoch_iters = 1, total_epochs = 10):
         model.save_weights(save_name)      
 
 if __name__ == '__main__':
-    train(epoch_iters=cfg.epoch_iters_start, total_epochs = cfg.total_epoch) 
+    # train(epoch_iters=cfg.epoch_iters_start, total_epochs = cfg.total_epoch) 
+    train(epoch_iters=1, total_epochs = 30)

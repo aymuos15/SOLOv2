@@ -1,13 +1,14 @@
 import os.path as osp
 
-import numpy as np
 import pycocotools.mask as maskUtils
 from collections.abc import Sequence
+
+import cv2
 import torch
+import numpy as np
+
 from .data_container import DataContainer as DC
 from .compose import Compose
-import cv2
-
 from .imgutils import imresize, imrescale, imflip, impad, impad_to_multiple
 
 class LoadImageFromFile(object):

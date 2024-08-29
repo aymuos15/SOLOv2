@@ -205,4 +205,4 @@ def eval(valmodel_weight, data_path, test_mode, save_imgs=False):
                 cv.imwrite(save_path, img_show)
 
 # eval(valmodel_weight=f'{home}pretrained/solov2_448_r18_epoch_36.pth',data_path=f"{home}data/casia-SPT_val/val/JPEGImages", test_mode="images", save_imgs=True)
-eval(valmodel_weight=f'{home}weights/solov2_resnet18_epoch_10.pth',data_path=f"{home}datasets/casia-SPT_val/val/JPEGImages", test_mode="images", save_imgs=True)
+eval(valmodel_weight=f'{home}weights/solov2_resnet18_epoch_30.pth',data_path=f"{home}datasets/casia-SPT_val/val/JPEGImages", test_mode="images", save_imgs=True)
